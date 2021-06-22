@@ -2,6 +2,11 @@
 Code/Astro Hawaii Project
 
 Overall goal: Combine Gaia, TESS and ASAS-SN information into one easily-readable catalog, or papa kuhikuhi in Hawaiian. :)
+Inputs: (minimal working example) 
+1. Gaia login 
+2. .txt file with RAs and Decs
+
+
 
 Outputs: 
 1. Table with cross-matched targets, RA, Dec, G Mag, Parallax, Proper Motion, Type. 
