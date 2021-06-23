@@ -1,19 +1,17 @@
-from astroquery.mast import Catalogs, Tesscut
-import os
-import numpy as np
-from astroquery.mast import Observations
+from astroquery.mast import Catalogs, Observations, Tesscut
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
-import sys
-from astropy.stats import mad_std, LombScargle
-import argparse
-from astroquery.gaia import Gaia
-import astroquery
 from astroquery.utils.tap.core import TapPlus as tap
+from astropy.stats import mad_std, LombScargle
+from astroquery.gaia import Gaia
+
+import os, sys, argparse, astroquery
+import numpy as np
 import pandas as pd
 import astropy.units as u
-gaia = tap(url="https://gea.esac.esa.int/tap-server/tap")
 
+
+gaia = tap(url="https://gea.esac.esa.int/tap-server/tap")
 
 class papa:
     'parent class'
@@ -106,7 +104,7 @@ class papa:
         out_asassn = []
         for i in range(len(self.ra)):
             try:
-                ra, dec, radius = np.float(self.ra[i]), np.float(self.dec[i]), np.float(self.radius)
+                ra, dec, radius = np.float(self.ra[i]), np.float(self.dec[i]), np.float(self.radius*60.)
             except:
                 raise ValueError('Input of RA=%s, Dec=%s, Radius=%s not allowed.' %(ra, dec, radius))
             
