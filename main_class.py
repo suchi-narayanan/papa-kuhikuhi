@@ -16,34 +16,51 @@ gaia = tap(url="https://gea.esac.esa.int/tap-server/tap")
 
 class papa:
     'parent class'
-    def __init__(self, path, radius):
+    def __init__(self, radius, path=None, ralist=None, declist=None):
         "path: file containing target coordinate"
         
         self.path = path
         self.radius = radius
-        dat = pd.read_csv(self.path)
-        c = SkyCoord(ra=dat['RA'], dec=dat['Dec'], unit=('hourangle', 'deg'), frame='icrs')
-
-        self.ra = c.ra.degree
-        self.dec = c.dec.degree
+        self.ra = None
+        self.dec = None
         
+        ## Input list file ##
+        if self.path is not None:
+            dat = pd.read_csv(self.path)
+            c = SkyCoord(ra=dat['RA'], dec=dat['Dec'], unit=('hourangle', 'deg'), frame='icrs')
+            self.ra = c.ra.degree
+            self.dec = c.dec.degree
         
-
+        if ralist is not None and declist is not None: #provide your own list of coordinates
+            self.ra = ralist
+            self.dec = declist
+            
+        if self.ra is None or self.dec is None:
+            raise ValueError('Coordinates have not been loaded in!')
+            
+            
     def check_inputfile(self):
         "check whether input file is right/not null"
         "print the number of input targets"
         pass
-    def Tess_query(self):
-        #super().__init__()
-        #result = Catalogs.query_criteria(catalog="Tic", ID=self.ticid)
+
+
+    def Tess_query(self, ra=None, dec=None):
+
+        if (ra is None) and (dec is None):
+            ra, dec = self.ra, self.dec
+        else:
+            ra, dec = [ra], [dec] 
+
         out_id =[]
         out_Tmag = []
         out_ra =[]
         out_dec =[]
         out_sector =[]
 
-        for i in range(len(self.ra)):
-            catalogData = Catalogs.query_object(self.ra[i], self.dec[i], radius = self.radius, catalog = "TIC")
+        for i in range(len(ra)):
+            print(self.radius, ra[i], dec[i])
+            catalogData = Catalogs.query_object("%s %s"%(ra[i], dec[i]), radius = self.radius, catalog = "TIC")
             if not catalogData:
                 print('No TIC counterpart')
             else:
@@ -64,13 +81,19 @@ class papa:
                 out_ra.append(Ra)
                 out_dec.append(Dec)
                 out_sector.append(len(sector_table))
-        return out.id, out_Tmag, out_ra, out_dec, out_sector
+        return out_id, out_Tmag, out_ra, out_dec, out_sector
 
-    def Gaia_query(self):
+
+    def Gaia_query(self, ra=None, dec=None):
         "gaia EDR3"      
-        gaia_dat = [] 
+        gaia_dat = []
 
-        for i in range(len(self.ra)):
+        if (ra is None) and (dec is None):
+            ra, dec = self.ra, self.dec
+        else:
+            ra, dec = [ra], [dec] 
+
+        for i in range(len(ra)):
             "check the unit of radius"
             query = f"SELECT gaia_source.source_id, gaia_source.ra, gaia_source.dec,\
             gaia_source.phot_g_n_obs, gaia_source.phot_g_mean_flux,\
@@ -79,11 +102,12 @@ class papa:
             gaia_source.parallax, gaia_source.pmra, gaia_source.pmdec \
             FROM gaiaedr3.gaia_source  WHERE CONTAINS( \
             POINT('ICRS',gaiaedr3.gaia_source.ra,gaiaedr3.gaia_source.dec), \
-            CIRCLE('ICRS',{self.ra[i]},{self.dec[i]}, {self.radius}))=1\
+            CIRCLE('ICRS',{ra[i]},{dec[i]}, {self.radius}))=1\
             AND g_rp > -10\
             ORDER BY ra ASC"
             job = gaia.launch_job_async(query)
             r = job.get_results()
+
             if len(r) > 0:
                 gaia_dat.append(r)
             else:
@@ -91,7 +115,7 @@ class papa:
 
         return gaia_dat   
 
-    def ASASN_query(self):
+    def ASASN_query(self, ra=None, dec=None):
         '''
         Inputs
         ra : Right Ascension of Target in degrees
@@ -102,10 +126,16 @@ class papa:
         
         TODO: Wrap this in object so we pass a Class instance
         '''
+
+        if (ra is None) and (dec is None):
+            ra, dec = self.ra, self.dec
+        else:
+            ra, dec = ra, dec
+
         out_asassn = []
-        for i in range(len(self.ra)):
+        for i in range(len(ra)):
             try:
-                ra, dec, radius = np.float(self.ra[i]), np.float(self.dec[i]), np.float(self.radius*60.)
+                ra, dec, radius = np.float(ra[i]), np.float(dec[i]), np.float(self.radius*60.)
             except:
                 raise ValueError('Input of RA=%s, Dec=%s, Radius=%s not allowed.' %(ra, dec, radius))
             
@@ -116,6 +146,16 @@ class papa:
             
         return out_asassn
     
+    def combined_query(self):
+        '''
+        combined gaia-tess-ASASSN query
+
+        '''
+        for i in range(len(self.ra)):
+            Tess_query(self.ra[i], self.dec[i])
+            Gaia_query(self.ra[i], self.dec[i])
+            ASASN_query(self.ra[i], self.dec[i])
+
     
 def test():
     """
