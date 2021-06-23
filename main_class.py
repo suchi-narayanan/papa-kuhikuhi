@@ -4,6 +4,7 @@ from astropy.io import fits
 from astroquery.utils.tap.core import TapPlus as tap
 from astropy.stats import mad_std, LombScargle
 from astroquery.gaia import Gaia
+from utils import *
 
 import os, sys, argparse, astroquery
 import numpy as np
