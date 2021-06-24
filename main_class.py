@@ -23,6 +23,9 @@ class papa:
         self.radius = radius
         self.ra = None
         self.dec = None
+        self.merge_cols = ['TIC', 'Lit Name', 'DR2_source_id', 'eDR3_source_id', 'ASAS-SN Name',
+       'Tmag', 'Num_sectors', 'eDR3_ra', 'eDR3_dec', 'DR2_ra', 'DR2_dec', 'parallax', 'phot_g_mean_mag',
+       'bp_rp', 'ASAS-SN_Period', 'ASAS-SN_Var'] # Merged column ordering
         
         ## Input list file ##
         if self.path is not None:
@@ -50,6 +53,9 @@ class papa:
         if (ra is None) and (dec is None):
             ra, dec = self.ra, self.dec
         else:
+            ra, dec = ra, dec 
+
+        if type(ra) == float: # list compatibility
             ra, dec = [ra], [dec] 
 
         out_id =[]
@@ -57,9 +63,9 @@ class papa:
         out_ra =[]
         out_dec =[]
         out_sector =[]
+        out_gaia = []
 
         for i in range(len(ra)):
-            print(self.radius, ra[i], dec[i])
             catalogData = Catalogs.query_object("%s %s"%(ra[i], dec[i]), radius = self.radius, catalog = "TIC")
             if not catalogData:
                 print('No TIC counterpart')
@@ -71,17 +77,14 @@ class papa:
                 Dec = catalogData[0]['dec']
                 coord = SkyCoord(Ra, Dec, unit="deg")
                 sector_table = Tesscut.get_sectors(coord)
-                
-            if not sector_table:
-                print('TESS has not observed this star')
-            else:
-                #print(sector_table)
                 out_id.append(ticid)
                 out_Tmag.append(catalogData[0]['Tmag'])
                 out_ra.append(Ra)
                 out_dec.append(Dec)
                 out_sector.append(len(sector_table))
-        return out_id, out_Tmag, out_ra, out_dec, out_sector
+                out_gaia.append(catalogData[0]['GAIA'])
+                 
+        return out_id, out_Tmag, out_ra, out_dec, out_sector, out_gaia
 
 
     def Gaia_query(self, ra=None, dec=None):
@@ -91,6 +94,9 @@ class papa:
         if (ra is None) and (dec is None):
             ra, dec = self.ra, self.dec
         else:
+            ra, dec = ra, dec
+            
+        if type(ra) == float: # list compatibility
             ra, dec = [ra], [dec] 
 
         for i in range(len(ra)):
@@ -107,11 +113,7 @@ class papa:
             ORDER BY ra ASC"
             job = gaia.launch_job_async(query)
             r = job.get_results()
-
-            if len(r) > 0:
-                gaia_dat.append(r)
-            else:
-                gaia_dat.append(0)
+            gaia_dat.append(r)
 
         return gaia_dat   
 
@@ -131,7 +133,10 @@ class papa:
             ra, dec = self.ra, self.dec
         else:
             ra, dec = ra, dec
-
+            
+        if type(ra) == float: # list compatibility
+            ra, dec = [ra], [dec]  
+            
         out_asassn = []
         for i in range(len(ra)):
             try:
@@ -151,10 +156,42 @@ class papa:
         combined gaia-tess-ASASSN query
 
         '''
-        for i in range(len(self.ra)):
-            Tess_query(self.ra[i], self.dec[i])
-            Gaia_query(self.ra[i], self.dec[i])
-            ASASN_query(self.ra[i], self.dec[i])
+        if type(self.ra) == float: # single star
+            ra, dec = [self.ra], [self.dec]
+        else:
+            ra, dec = self.ra, self.dec
+           
+        for i in range(len(ra)):
+            tss = self.Tess_query(ra[i], dec[i])
+            tss_df = pd.DataFrame({'TIC': tss[0],
+                       'Tmag': tss[1],
+                      'DR2_ra': tss[2],
+                      'DR2_dec': tss[3],
+                      'Num_sectors': tss[4],
+                      'DR2_source_id': tss[5]})
+            
+            
+            g = self.Gaia_query(ra[i], dec[i])
+            g = g[0][['source_id', 'ra', 'dec', 'phot_g_mean_mag', 'bp_rp', 'parallax',
+                 ]].to_pandas()
+            g = g.rename(columns={'source_id': 'eDR3_source_id',
+                     'ra': 'eDR3_ra',
+                     'dec': 'eDR3_dec',
+                     })
+            
+            asas = self.ASASN_query(ra[i], dec[i])[0][['ASAS-SN Name', 'Other Names', 'Period', 'Type']]
+            asas = asas.rename(columns={'Other Names': 'Lit Name',
+                   'Period': 'ASAS-SN_Period',
+                    'Type': 'ASAS-SN_Var'})
+            
+            merged = pd.concat([g, asas, tss_df], axis=1)[self.merge_cols]
+            
+            if i > 0:
+                stack = pd.concat([stack, merged])
+            else:
+                stack = merged
+            
+        return stack
 
     
 def test():
