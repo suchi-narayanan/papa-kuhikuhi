@@ -2,4 +2,8 @@ numpy
 pandas
 matplotlib
 gaia-on-tap
-
+astroquery
+astropy
+os
+sys
+argparse
