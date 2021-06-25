@@ -1,15 +1,10 @@
-from astroquery.mast import Catalogs, Observations, Tesscut
+from astroquery.mast import Catalogs, Tesscut
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astroquery.utils.tap.core import TapPlus as tap
-from astropy.stats import mad_std, LombScargle
-from astroquery.gaia import Gaia
-from utils import *
-
-import os, sys, argparse, astroquery
+import os, sys, argparse
 import numpy as np
 import pandas as pd
-import astropy.units as u
 
 
 gaia = tap(url="https://gea.esac.esa.int/tap-server/tap")
