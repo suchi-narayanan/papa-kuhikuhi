@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import gaia.tap
-    
+import astroquery
+from astroquery.utils.tap.core import TapPlus as tap
 
 def obs_cmd_data():
     '''
@@ -13,9 +13,11 @@ def obs_cmd_data():
     g_abs: Absolute Gaia G-band magnitude for observed CMD
     
     '''
-    query = gaia.tap.query("""SELECT bp_rp_index / 40 AS bp_rp, g_abs_index / 10 AS g_abs, n
+    gaia = tap(url="https://gea.esac.esa.int/tap-server/tap")
+
+    query = """SELECT bp_rp_index/40 AS bp_rp, g_abs_index/10 AS g_abs
                                 FROM (
-                                SELECT 
+                                SELECT
                                 floor(bp_rp * 40) AS bp_rp_index,
                                 floor((phot_g_mean_mag + 5 * log10(parallax) - 10) * 10) AS g_abs_index,
                                 count(*) AS n
@@ -24,8 +26,10 @@ def obs_cmd_data():
                                 AND a_g_val IS NOT NULL
                                 AND random_index < 850000
                                 GROUP BY bp_rp_index, g_abs_index
-                                ) AS subquery """)
-    
-    bp_rp, g_abs = query['bp_rp'].data, query['g_abs'].data
+                                ) AS subquery"""
+    job = gaia.launch_job_async(query)
+    obj = job.get_results()
+    bprp = obj['bp_rp']
+    g_abs =  obj['g_abs']
     
     return bp_rp, g_abs
