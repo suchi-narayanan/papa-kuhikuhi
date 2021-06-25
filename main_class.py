@@ -5,15 +5,19 @@ from astroquery.utils.tap.core import TapPlus as tap
 import os, sys, argparse
 import numpy as np
 import pandas as pd
+import warnings
+warnings.filterwarnings('ignore')
 
 
 gaia = tap(url="https://gea.esac.esa.int/tap-server/tap")
 
 class papa:
-    'parent class'
     def __init__(self, radius, path=None, ralist=None, declist=None):
-        "path: file containing target coordinate"
+        '''
         
+        '''
+    
+
         self.path = path
         self.radius = radius
         self.ra = None
@@ -50,7 +54,7 @@ class papa:
         else:
             ra, dec = ra, dec 
 
-        if type(ra) == float: # list compatibility
+        if type(ra) == np.float64 or type(ra) == float: # list compatibility
             ra, dec = [ra], [dec] 
 
         out_id =[]
@@ -59,6 +63,7 @@ class papa:
         out_dec =[]
         out_sector =[]
         out_gaia = []
+
 
         for i in range(len(ra)):
             catalogData = Catalogs.query_object("%s %s"%(ra[i], dec[i]), radius = self.radius, catalog = "TIC")
@@ -91,7 +96,7 @@ class papa:
         else:
             ra, dec = ra, dec
             
-        if type(ra) == float: # list compatibility
+        if type(ra) == np.float64 or type(ra) == float: # list compatibility
             ra, dec = [ra], [dec] 
 
         for i in range(len(ra)):
@@ -129,7 +134,7 @@ class papa:
         else:
             ra, dec = ra, dec
             
-        if type(ra) == float: # list compatibility
+        if type(ra) == np.float64 or type(ra) == float: # list compatibility
             ra, dec = [ra], [dec]  
             
         out_asassn = []
@@ -155,7 +160,7 @@ class papa:
             ra, dec = [self.ra], [self.dec]
         else:
             ra, dec = self.ra, self.dec
-           
+        
         for i in range(len(ra)):
             tss = self.Tess_query(ra[i], dec[i])
             tss_df = pd.DataFrame({'TIC': tss[0],
@@ -194,11 +199,12 @@ def test():
     unit test for ff.py
     """
 
-    dir='/Users/zjw/Desktop/test/std_info.dat'
-    radius = 0.00001
-    papa_test = papa(dir, radius)
+    dir='test.dat'
+    radius = 0.0005
+    papa_test = papa(radius, path=dir)
+    
     print(papa_test.ra[0], papa_test.dec[0])
-    re = papa_test.Gaia_query() 
+    re = papa_test.combined_query()
     print(re)
 
 if __name__ == '__main__':
