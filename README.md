@@ -1,5 +1,5 @@
 # papa-kuhikuhi
-Code/Astro Hawaii Project
+Code/Astro (Hawai‘i Project)
 
 Overall goal: Combine Gaia, TESS and ASAS-SN information into one easily-readable catalog, or papa kuhikuhi in Hawaiian. :)
 Inputs: (minimal working example) 
